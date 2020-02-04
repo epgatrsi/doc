@@ -1,0 +1,242 @@
+<h1>Code review guide</h1>
+
+<a href="https://github.com/epgatrsi/doc/blob/master/codereview.html">
+  source
+</a>
+
+<h2>Review your diff</h2>
+
+No matter how much I try to clean up, I always find mistakes when
+reviewing my own diff.
+
+<h2>Explicit Is Better Than Implicit</h2>
+
+This is one of the most important principles.  It means avoiding all
+forms of action at a distance.  It means tracing all dependencies to a
+specific line of code instantiating them.  It means avoiding defaults.
+<p>
+It does not mean fearing defaults of the language.  For example,
+non-<code>final</code> members default to <code>null</code>; this is
+explicitly documented behavior.
+<p>
+  Note:  temporary defaults are required during transitions, e.g.
+  <ol>
+    <li>Add optional input
+    <li>Update all dependents to supply the new input
+    <li>Remove default, making the input required
+  </ol>
+
+<h2>Naming</h2>
+<li>Is the name clear and specific?
+<li>Usually should not simply repeat the type name
+<li>Are similar things named similarly?
+<li>
+  Names of instantiable classes should be singular, even a collection:
+  an instance is always just one thing; even a list of lists is itself
+  only one list
+<li>
+  Classes should be named as agent nouns (usually ending in '-er' or
+  '-or') with that noun last in compound names
+  (e.g. <code>FrobValidator</code>)
+<li>
+  methods should be named as verbs, leading with the verb in compound
+  names(e.g. <code>#validateName</code>)
+<li>
+  <a name="naming-stuttering">
+    Minimize <a href="#stuttering">stuttering</a> in names:
+  </a>
+  prefer <code>package.frob.Validator#validate</code>
+  to <code>package.frob.FrobValidator#validateFrob</code>
+<li>
+  Don't duplicate information from the types; prefer <code>lookup(Id)</code> and
+  <code>lookup(Email)</code> to <code>lookupId(Id)</code>
+  and <code>lookupEmail(email)</code>
+<li>
+  Avoid phrases such as 'helper' and 'util': they indicate a dumping
+  ground of unrelated concerns
+  (see <a href="#separation-of-concern">"Separation of Concern"</a>)
+  which is bad enough, but then dumping grounds attract more dumping.
+<li>
+  Group static methods into non-instantiable classes named for the
+  types on which they operate, in the plural,
+  e.g. <code>Users</code>, <code>Files</code>
+  <p>
+  Make a class non-instantiable by declaring itse default constructor
+  as <code>private</code> and with a body throwing
+  <code>UnsupportedOperationException</code></li>
+
+<h2>
+  <a name="separation-of-concern">
+    Separation of concern
+  </a>
+</h2>
+
+Each class should do one job and do it well.
+<p>
+Methods, doubly so.
+
+<h2>Information hiding</h2>
+
+Yes, have some.
+
+<h2>Smells</h2>
+<li>Constructor does work
+<li>Digging into collaborators (Law of Demeter)
+<li>Primitive obsession</li>
+
+<h2>Mutability</h2>
+
+Mutable classes are bug-prone.
+<p>
+Rarely should a class be mutable (changed after construction).  Most
+common exceptions are accumulator classes such as builders.  If a
+class is mutable, it should almost certainly be single-use.
+
+<h2>Assignability</h2>
+
+Assignable variables are bug-prone.
+<p>
+Declare all identifiers <code>final</code> by default.  If it's
+assignable, the value will change behind your back.
+<p>
+Limit the scope of non-<code>final</code> identifiers.  If they're
+members, ensure the class is short-lived (e.g. a builder).  If they're
+variables, put them into their own method, whose callers store the
+results in a <code>final</code>.
+
+<h2>Single-use class</h2>
+
+If a class is single-use, enforce that by throwing
+<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/IllegalStateException.html"><code>IllegalStateException</code></a>
+upon reuse.
+
+<h2>Inheritance</h2>
+<li>Favor composition over inheritance.  Very old advice, still the best.
+<li>Inheritance is the tightest form of coupling.
+<li>
+  Either design for inheritance or forbid it.  Mark all methods either
+  abstract or <code>final</code>, preferably by marking the enclosing
+  class.
+<li>The bad fruits of inheritance are multiplied by each level.</li>
+
+<h2>Injection</h2>
+<li>Instantiation is the second tighest form of coupling
+<li>Dependencies must be injected
+<li>
+  When a class must instantiate, it should do so via an injected
+  factory, e.g. call the make method of the <code>ValidationResultFactory</code>
+  interface rather than <code>new ValidationResult()</code>
+</li>
+
+<h2><code>null</code></h2>
+
+<code>null</code> is not just bug-prone, is is
+the <a href="https://www.google.com/search?q=billion+dollar+mistake">billion-dollar
+mistake</a>.
+<p>
+<li><code>requireNonNull</code> on all parameters to all public methods
+<li>
+  If a parameter is optional, use an overload (or maybe, but probably
+  not, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Optional.html"><code>Optional</code></a>)
+<li>
+  Don't return <code>null</code>; return a default,
+  return <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Optional.html"><code>Optional</code></a>,
+  or throw an exception
+<li>
+  Check all dependency method return values for <code>null</code>; if
+  it can't return <code>null</code> today, it will tomorrow
+</li>
+
+<h2><code>Optional</code></h2>
+
+Don't use <code>Optional#get</code>, which defeats the purpose.
+
+<h2>Scope</h2>
+
+The wider the scope, the more prone to bugs.
+<p>
+Declare identifiers in the narrowest possible scope and as late in
+that scope as possible.
+
+<h2>Member initialization</h2>
+
+Prefer member initialization in these locations, in order of
+decreasing preference:
+<ol>
+<li>declaration
+<li>initialization block
+<li>constructor
+</ol>
+
+<h2>Lambda</h2>
+
+<li>should be treated as joints or pipe fittings
+<li>should not contain business logic
+<li>
+  capture data from enclosing scope and pass off to proper methods
+</li>
+
+<h2>
+  <a name="stuttering">
+    Minimize stuttering
+  </a>
+</h2>
+See <a href="#naming-stuttering">stuttering</a> section in "Naming" above.
+<p>
+Prefer <code>var frobs = new ArrayList&lt;Frob&gt;()</code>
+
+<h2>IntelliJ formatting</h2>
+<li>
+  Don't waste your time on formatting: have IntelliJ format all
+  changed files (if working in a legacy code-base, select a region of
+  code to format)
+<li>
+  <a href="https://www.google.com/search?q=google-java-format">google-java-format</a>
+  is even better if the project allows it, as pre-check-in hooks can
+  be installed to prevent check-ins of malformatted code.
+</li>
+
+<h2>Comments</h2>
+<li>Well-named classes and methods are self-documenting to a large extent
+<li>Comments should tell why and how rather than what
+<li>
+  Javadoc is great, but should not duplicate information specified by
+  names or types.
+</li>
+
+<h2>Exception handling</h2>
+<li>
+  <code>try</code> blocks catching multiple exceptions should contain
+  only one method call which throws all the caught exceptions
+<li>
+  <code>try</code> blocks catching only one exception should contain
+  only method calls which throw the one exception
+  (<code>IOException</code> is a common example), but only if all
+  exceptions are to be handled the same way
+<li>
+  Declare in <code>throws</code> clause or wrap
+  and <code>throw</code>?  If the exception is of a type at the same
+  layer as the method encountering the exception, <code>throws</code>
+  is probably right; otherwise, wrap
+  and <code>throw</code>.  <code>throws</code> is a tight coupling!
+<li>
+  Avoid
+  catching <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/RuntimeException.html"><code>RuntimeException</code></a>
+  where possible.  For example
+  catching <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/IllegalStateException.html"><code>IllegalStateException</code></a>
+  is papering over a bug: instead, don't enter the illegal state in
+  the first place.  Many dependencies force your hand by
+  throwing <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/RuntimeException.html"><code>RuntimeException</code></a>
+  for routine errors which must be handled</li>
+
+<h2>Logging</h2>
+<li>Does this tell an operator anything an incremented counter does not?
+<li>Is this actionable?
+<li>
+  When an operator encounters this log entry, does it tell them
+  everything they need to know?  E.g. user identifiers, correlated
+  timestamps
+<li>Is the log entry expensive to compute and logged at high frequency?</li>
+
+<h2>Style</h2>
+<li>Don't break line between new or builder and the type name (<code>Foo.builder()</code> and <code>new Foo()</code>)
